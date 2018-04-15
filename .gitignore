@@ -1,2 +1,5 @@
 *.swp
 symbols.*
+*.map
+*.z1
+/obj_z1
