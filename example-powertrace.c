@@ -62,10 +62,40 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 static struct broadcast_conn broadcast;
 /*---------------------------------------------------------------------------*/
+void powertrace_log(unsigned int powertrace_timer)
+{
+  static uint32_t last_cpu, last_lpm, last_transmit, last_listen;
+  uint32_t all_cpu, all_lpm, all_transmit, all_listen;
+  uint32_t cpu, lpm, transmit, listen;
+
+  energest_flush();
+
+  all_cpu = energest_type_time(ENERGEST_TYPE_CPU);
+  all_lpm = energest_type_time(ENERGEST_TYPE_LPM);
+  all_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
+  all_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
+
+  cpu = all_cpu - last_cpu;
+  lpm = all_lpm - last_lpm;
+  transmit = all_transmit - last_transmit;
+  listen = all_listen - last_listen;
+
+  energest_flush();
+
+  last_cpu = energest_type_time(ENERGEST_TYPE_CPU);
+  last_lpm = energest_type_time(ENERGEST_TYPE_LPM);
+  last_transmit = energest_type_time(ENERGEST_TYPE_TRANSMIT);
+  last_listen = energest_type_time(ENERGEST_TYPE_LISTEN);
+
+  printf("Ticks/sec: %u trace_timer: %us\n", RTIMER_SECOND, powertrace_timer);
+  printf("Energest-legend: all_cpu, all_lpm, all_tx, all_rx, cpu, lpm, tx, rx\n"); 
+  printf("Energest-CSV: %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu\n",
+	 all_cpu, all_lpm, all_transmit, all_listen, cpu, lpm, transmit, listen);
+}
 PROCESS_THREAD(example_broadcast_process, ev, data)
 {
   static struct etimer et;
-  static unsigned int  trace_timer = 2;
+  static unsigned int powertrace_timer = 2;
 
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
@@ -73,7 +103,7 @@ PROCESS_THREAD(example_broadcast_process, ev, data)
 
 
   /* Start powertracing, once every two seconds. */
-  powertrace_start(CLOCK_SECOND * trace_timer);
+  powertrace_start(CLOCK_SECOND * powertrace_timer);
   
   broadcast_open(&broadcast, 129, &broadcast_call);
 
@@ -90,15 +120,7 @@ PROCESS_THREAD(example_broadcast_process, ev, data)
  
  /* Flush all energest times so we can read latest values */
     energest_flush();
-
-    printf("Energest CPU: %lu LPM: %lu Transmit: %lu Listen: %lu || Ticks/sec: %u trace_timer: %us\n",
-           (unsigned long)(energest_type_time(ENERGEST_TYPE_CPU)),
-           (unsigned long)(energest_type_time(ENERGEST_TYPE_LPM)),
-           (unsigned long)(energest_type_time(ENERGEST_TYPE_TRANSMIT)),
-	   (unsigned long)(energest_type_time(ENERGEST_TYPE_LISTEN)),
-	   RTIMER_SECOND,
-	   trace_timer);
-   
+    powertrace_log(powertrace_timer);
   }
 
   PROCESS_END();
