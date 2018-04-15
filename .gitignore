@@ -4,3 +4,4 @@ symbols.*
 *.a
 *.z1
 /obj_z1
+loglistener.*
