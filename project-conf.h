@@ -9,3 +9,7 @@
 #ifndef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC nullmac_driver
 #endif /* NETSTACK_CONF_MAC */
+
+#ifndef ENERGEST_CONF_ON
+#define ENERGEST_CONF_ON 1
+#endif /* ENERGEST_CONF_ON */
