@@ -42,6 +42,7 @@
 #include "random.h"
 
 #include "powertrace.h"
+#include "sys/energest.h"
 
 #include "dev/button-sensor.h"
 
@@ -64,6 +65,7 @@ static struct broadcast_conn broadcast;
 PROCESS_THREAD(example_broadcast_process, ev, data)
 {
   static struct etimer et;
+  static unsigned int  trace_timer = 2;
 
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
@@ -71,7 +73,7 @@ PROCESS_THREAD(example_broadcast_process, ev, data)
 
 
   /* Start powertracing, once every two seconds. */
-  powertrace_start(CLOCK_SECOND * 2);
+  powertrace_start(CLOCK_SECOND * trace_timer);
   
   broadcast_open(&broadcast, 129, &broadcast_call);
 
@@ -85,6 +87,18 @@ PROCESS_THREAD(example_broadcast_process, ev, data)
     packetbuf_copyfrom("Hello", 6);
     broadcast_send(&broadcast);
     printf("broadcast message sent\n");
+ 
+ /* Flush all energest times so we can read latest values */
+    energest_flush();
+
+    printf("Energest CPU: %lu LPM: %lu Transmit: %lu Listen: %lu || Ticks/sec: %u trace_timer: %us\n",
+           (unsigned long)(energest_type_time(ENERGEST_TYPE_CPU)),
+           (unsigned long)(energest_type_time(ENERGEST_TYPE_LPM)),
+           (unsigned long)(energest_type_time(ENERGEST_TYPE_TRANSMIT)),
+	   (unsigned long)(energest_type_time(ENERGEST_TYPE_LISTEN)),
+	   RTIMER_SECOND,
+	   trace_timer);
+   
   }
 
   PROCESS_END();
